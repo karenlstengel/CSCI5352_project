@@ -61,7 +61,7 @@ include plt here that is prob p vs time t
 <!--- end of section -->
 ## Experiment outline
 
-1. static network
+1. static network (probablity of edges = mean(probability of edges in temporal network?))
     - SIR model
     - viral load model
 2. temporal network
