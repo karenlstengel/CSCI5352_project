@@ -2,6 +2,7 @@
 import temporal_network
 import matplotlib.pyplot as plt
 import webweb
+from Network import *
 
 n = 100
 m = 2
@@ -50,4 +51,11 @@ web.display.colorPalette = 'Dark2'
 web.display.colorBy = 'degree'
 web.show()
 
-A = temporal_network.temporal_to_static_network(temporalA, isWeighted=False)
+#---------------------------------------------------------------------------------
+#OOP Version
+network = Network(filename = filename)
+edgeList = network.edge_list
+nodeList = network.node_list
+print(nodeList[0])
+#print(nodeList[1])
+#print(nodeList[2])

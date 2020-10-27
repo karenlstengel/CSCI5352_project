@@ -27,6 +27,8 @@ def run_temporal_viral_load(temporal_network, gamma, beta, tmin=0, tmax=100, dt=
         initial_infected = random.randrange(n)
     if initial_recovered is None:
         initial_recovered = []
+    if len(temporal_network) > 1: #case where we are doing dynamics on a static network
+        tmax = len(temporal_network)
 
     t = tmin
     I = [len(initial_infected)]
@@ -35,6 +37,9 @@ def run_temporal_viral_load(temporal_network, gamma, beta, tmin=0, tmax=100, dt=
     times = [tmin]
     while time <= tmax:
         # infect shit
+        # for i in I:
+            # calculate viral viral_load
+            #calculate probability of infection: infectiousness was taken to be proportional to the logarithm of viral load in excess of 106 cp/ml {Larremore 2020}
 
         t += dt
         times.append(t)
