@@ -11,6 +11,8 @@ def drawTimeStep(edgeList, nodeList, ts):
     # make a graph from edgelist
     # add attributes to nodes
 
+    #plt.savefig('{0:05d}.jpg'.format(ts)', bbox_inches = 'tight')
+
 # Helper functions
 # use this to import sociopatterns data
 def import_temporal_networks(filename, delimiter = " "):

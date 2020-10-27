@@ -16,13 +16,13 @@ class Network:
         default_node_attrs = node_attrs if node_attrs is not None else {'status': 'S', 'infect_time': -1, 'infect_prob': 0.0, 'remove_time': -1}
         # this dictionary will be assigned to each node at initialization unless we pass in a list.
         if filename is None:
-            self.node_list = {t:{n:default_node_attrs for n in range(num_nodes)} for t in range(len(edge_probs))} #num_nodes
+            self.node_list = {t:{n:default_node_attrs for n in range(num_nodes)} for t in range(len(edge_probs))}
             self.edge_probs = edge_probs
             self.netType = 'temporal' if len(edge_probs) > 1 else 'static'
             self.edge_list = {} # need to generate for each timestep based off of edge_probs[p]
         else:
             num_nodes, self.edge_list = import_temporal_networks(filename, delimiter)
-            self.node_list = {t:{n:default_node_attrs for n in range(num_nodes)} for t in range(len(self.edge_list))}
+            self.node_list = {t:{n:default_node_attrs for n in range(num_nodes)} for t in list(self.edge_list.keys())}
 
 
 

@@ -14,6 +14,13 @@ If the `.yml` import doesn't work here is how to install `graph-tools` with Cond
 4. `conda gt list`
 
 <!--- end of section -->
+
+## Making GIFs from images
+`sudo apt-get install imagemagick`  
+`convert -delay 20 -loop 0 *.jpg myimage.gif`  
+
+<!--- end of section -->
+
 ## Algorithm pseudocode
 Feel free to change as you see fit:
 
