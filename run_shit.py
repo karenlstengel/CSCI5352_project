@@ -49,3 +49,5 @@ web.display.showLegend = True
 web.display.colorPalette = 'Dark2'
 web.display.colorBy = 'degree'
 web.show()
+
+A = temporal_network.temporal_to_static_network(temporalA, isWeighted=False)

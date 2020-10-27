@@ -22,8 +22,8 @@ def construct_activity_driven_model(n, m, activities, tmin=0, tmax=100, dt=1):
         for index in range(n):
             if random.random() <= activities[index]*dt:
                 indices = random.sample(range(n), m)
-                edgeList.extend([[index, j] for j in indices])
-                edgeList.extend([[j, index] for j in indices])
+                edgeList.extend([(index, j) for j in indices])
+                edgeList.extend([(j, index) for j in indices])
         temporalEdgeList[t] = edgeList
         t += dt
     return temporalEdgeList
@@ -55,10 +55,27 @@ def import_temporal_networks(filename, delimiter):
             i = int(contact[1])
             j = int(contact[2])
             try:
-                temporalEdgeList[t].extend([[i,j], [j,i]])
+                temporalEdgeList[t].extend([(i,j), (j,i)])
             except:
-                temporalEdgeList[t] =[[i,j], [j,i]]
+                temporalEdgeList[t] =[(i,j), (j,i)]
     return temporalEdgeList
+
+def temporal_to_static_network(temporalA, isWeighted=False):
+    if isWeighted:
+        staticEdgeList = list()
+    else:
+        staticEdgeList = set()
+    for time, edgeList in temporalA.items():
+        for edge in edgeList:
+            if isWeighted:
+                staticEdgeList.append(edge)
+            else:
+                staticEdgeList.add(edge)
+    if isWeighted:
+        return staticEdgeList
+    else:
+        return list(staticEdgeList)
+
 
 def generate_activities_from_data(filename, delimiter, n, exponent, a, b, nu, epsilon):
     activities = dict()
