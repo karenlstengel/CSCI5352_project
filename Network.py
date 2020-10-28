@@ -6,7 +6,7 @@ from scipy.sparse import csr_matrix
 from utils import *
 
 class Network:
-    def __init__(self, num_nodes = 100, edge_probs = [], contagionType = "VL", filename = None, delimiter = " ", node_attrs = None):
+    def __init__(self, num_nodes, edge_list, node_attrs = None):
         '''
             num_nodes : number of nodes in the network if not passing in a file
         '''
@@ -15,16 +15,9 @@ class Network:
 
         default_node_attrs = node_attrs if node_attrs is not None else {'status': 'S', 'infect_time': -1, 'infect_prob': 0.0, 'remove_time': -1}
         # this dictionary will be assigned to each node at initialization unless we pass in a list.
-        if filename is None:
-            self.node_list = {t:{n:default_node_attrs for n in range(num_nodes)} for t in range(len(edge_probs))}
-            self.edge_probs = edge_probs
-            self.netType = 'temporal' if len(edge_probs) > 1 else 'static'
-            self.edge_list = {} # need to generate for each timestep based off of edge_probs[p]
-        else:
-            num_nodes, self.edge_list = import_temporal_networks(filename, delimiter)
-            self.node_list = {t:{n:default_node_attrs for n in range(num_nodes)} for t in list(self.edge_list.keys())}
-
-
+        self.node_list = dict({n:dict(default_node_attrs) for n in range(num_nodes)})
+        self.netType = 'temporal' if len(edge_list) > 1 else 'static'
+        self.edge_list = edge_list # need to generate for each timestep based off of edge_probs[p]
 
     def run_temporal_contagion(self, gamma, beta, tmin=0, tmax=100, dt=1, initial_infected=None, initial_recovered=None):
         n = len(self.node_list)
