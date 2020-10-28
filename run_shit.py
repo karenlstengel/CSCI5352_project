@@ -3,6 +3,7 @@ import temporal_network
 import matplotlib.pyplot as plt
 import webweb
 from Network import *
+from utils import * # TODO this is where the network builing functions will live
 
 n = 100
 m = 2
