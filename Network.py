@@ -6,7 +6,7 @@ from scipy.sparse import csr_matrix
 from utils import *
 
 class Network:
-    def __init__(self, num_nodes, edge_list, node_attrs = None):
+    def __init__(self, nodes, edge_list, node_attrs = None, k = 2.5):
         '''
             num_nodes : number of nodes in the network if not passing in a file
         '''
@@ -15,9 +15,10 @@ class Network:
 
         default_node_attrs = node_attrs if node_attrs is not None else {'status': 'S', 'infect_time': -1, 'infect_prob': 0.0, 'remove_time': -1}
         # this dictionary will be assigned to each node at initialization unless we pass in a list.
-        self.node_list = dict({n:dict(default_node_attrs) for n in range(num_nodes)})
+        self.node_list = dict({n:dict(default_node_attrs) for n in nodes})
         self.netType = 'temporal' if len(edge_list) > 1 else 'static'
         self.edge_list = edge_list # need to generate for each timestep based off of edge_probs[p]
+        self.pos = setPos(k)
 
     def run_temporal_contagion(self, gamma, beta, tmin=0, tmax=100, dt=1, initial_infected=None, initial_recovered=None):
         n = len(self.node_list)
@@ -58,72 +59,15 @@ class Network:
 
             t += dt
             times.append(t)
+
+            drawContagion_nx(self.edgeList, self.nodeList, list(edgeList.keys())[t], exp_name = 'testing_drawFunc_nx/', pos = self.pos)
+
         return np.array(times), np.array(S), np.array(I), np.array(R)
 
-    #need to update these to work with OOP design
+    def setPos(self, k = 2.5):
+        G_temp = nx.Graph()
+        for t in self.edgeList.keys():
+            #all_edges_inTime.add(edgeList[t])
+            G_temp.add_edges_from(self.edgeList[t])
 
-    def construct_activity_driven_model(self, n, m, activities, tmin=0, tmax=100, dt=1):
-        # at each time step turn on a node w.p. a_i *deltaT
-        t = tmin
-        temporalEdgeList = dict()
-        while t < tmax:
-            edgeList = list()
-            for index in range(n):
-                if random.random() <= activities[index]*dt:
-                    indices = random.sample(range(n), m)
-                    edgeList.extend([(index, j) for j in indices])
-                    edgeList.extend([(j, index) for j in indices])
-            temporalEdgeList[t] = edgeList
-            t += dt
-        return temporalEdgeList
-
-    def construct_neighbor_exchange_model(self, initialA, tmin=0, tmax=100, dt=1):
-        # this does random edge swaps
-        A = initialA.copy()
-        temporalA = [A]
-        while t < tmax:
-            i, j = np.nonzero(A)
-            ix = random.sample(range(len(i)), 2)
-            A[i[ix], j[ix]] = 0
-            A[j[ix], i[ix]] = 0
-            # thise might reduce the number of edges if this edge already exists
-            A[i[ix], j[reverse(ix)]] = 1
-            A[j[ix], i[reverse(ix)]] = 1
-            t += dt
-            temporalA.append(A)
-
-        return temporalA
-
-    def temporal_to_static_network(self, temporalA, isWeighted=False):
-        if isWeighted:
-            staticEdgeList = list()
-        else:
-            staticEdgeList = set()
-        for time, edgeList in temporalA.items():
-            for edge in edgeList:
-                if isWeighted:
-                    staticEdgeList.append(edge)
-                else:
-                    staticEdgeList.add(edge)
-        if isWeighted:
-            return staticEdgeList
-        else:
-            return list(staticEdgeList)
-
-
-    def generate_activities_from_data(self, filename, delimiter, n, exponent, a, b, nu, epsilon):
-        activities = dict()
-        with csv.open(filename, delimiter=delimiter) as contactList:
-            for contactData in contactList:
-                t = contactData[0]
-                i = contactData[1]
-                j =contactData[2]
-                try:
-                    # increment the degree assuming undirected
-                    activities[t][i,j] += 1
-                    activities[t][j] += 1
-                except:
-                    activities[t] = np.zeros(n)
-                    activities[t][i] = 1
-                    activities[t][j] = 1
-        return activities # or should it be the average
+        self.pos = nx.spring_layout(G_temp, k = k)

@@ -5,13 +5,95 @@ import math
 from scipy.sparse import csr_matrix
 import graph_tool as gt
 
-def drawTimeStep(edgeList, nodeList, ts):
+def drawContagion_nx(edgeList, nodeList, ts, exp_name = '', pos = None):
+    #print("hi")
+    if not os.path.exists('output/' + exp_name):
+        os.makedirs('output/' + exp_name)
+
+    plt.figure(figsize = (10,10))
+
+    #for ts in [list(edgeList.keys())[0]]: #list(edgeList.keys())):
     print('Drawing the graph for time ' + str(ts))
 
-    # make a graph from edgelist
-    # add attributes to nodes
+    I = []
+    S = []
+    R = []
 
-    #plt.savefig('{0:05d}.jpg'.format(ts)', bbox_inches = 'tight')
+    G = nx.Graph()
+    G.add_nodes_from(list(nodeList.keys()))
+    #print('Nodes: ', G.nodes())
+    #print(edgeList[ts])
+    G.add_edges_from(edgeList[ts])
+    #nx.draw(G)
+    #G_gv = nx.nx_agraph.to_agraph(G)
+    #print(G_gv.get_node('0'))
+
+    for node, vals in nodeList.items():
+        if vals['status'] == 'I':
+            I.append(node)
+        elif vals['status'] == 'S':
+            S.append(node)
+        elif vals['status'] == 'R':
+            R.append(node)
+
+    edge_probs = []
+    for edge in edgeList[ts]:
+        if nodeList[edge[0]]['status'] == 'I':
+            if nodeList[edge[1]]['status'] == 'S':
+                edge_probs.append(nodeList[edge[0]]['infect_prob'])
+
+        elif nodeList[edge[1]]['status'] == 'I':
+            if nodeList[edge[0]]['status'] == 'S':
+                edge_probs.append(nodeList[edge[1]]['infect_prob'])
+        else:
+            edge_probs.append(nodeList[edge[0]]['infect_prob'])
+        #G.edges()[edge]['weight'] = edge_colors[-1]
+    #print(edge_probs)
+
+    norm = mc.Normalize(vmin=0.0, vmax=1.0, clip=True)
+    mapper = cm.ScalarMappable(norm=norm, cmap='plasma')
+    edge_colors = []
+    for v in edge_probs:
+        edge_colors.append(mapper.to_rgba(v))
+
+    # nodes
+    nx.draw_networkx_nodes(G,pos,
+                       nodelist=S,
+                       node_color='y',
+                       node_size=50,
+                       alpha=0.8,
+                       label = 'S').set_edgecolor('k');
+    nx.draw_networkx_nodes(G,pos,
+                       nodelist=I,
+                       node_color='r',
+                       node_size=50,
+                       alpha=0.8,
+                       label = 'I').set_edgecolor('k');
+    nx.draw_networkx_nodes(G,pos,
+                       nodelist=R,
+                       node_color='gray',
+                       node_size=50,
+                       alpha=0.8,
+                       label = 'R').set_edgecolor('k');
+
+    # edges
+    e_cb = nx.draw_networkx_edges(G, pos, width=1.0,
+                           edge_cmap = 'plasma',
+                           edge_vmin = 0, edge_vmax = 1.0,
+                           edge_color = edge_colors);
+
+    labels={n:str(n) for n in nodeList.keys()}
+    #nx.draw_networkx_labels(G,pos,labels,font_size=8)
+
+    plt.legend(title = 'Legend');
+
+
+    cbar = plt.colorbar(e_cb, ticks = np.arange(0.0, 1.1, 0.1), label = 'Probability of Infection')
+    cbar.ax.set_yticklabels([str(round(n, 1)) for n in np.arange(0.0, 1.1, 0.1)])
+
+    plt.title('Test 1, time: ' + str(int(ts)))
+    plt.savefig('output/' + exp_name + 'simTime_{0:05d}.jpg'.format(int(ts)))
+    #--------------------------------------------------------------------------
 
 # Helper functions
 # use this to import sociopatterns data
@@ -50,3 +132,69 @@ def generate_activities(n, exponent, nu, epsilon):
 
 def invCDFPowerLaw(u, a, b, exponent):
     return (a**(1-exponent) + u*(b**(1-exponent) - a**(1-exponent)))**(1/(1-exponent))
+
+def construct_activity_driven_model(n, m, activities, tmin=0, tmax=100, dt=1):
+    # at each time step turn on a node w.p. a_i *deltaT
+    t = tmin
+    temporalEdgeList = dict()
+    while t < tmax:
+        edgeList = list()
+        for index in range(n):
+            if random.random() <= activities[index]*dt:
+                indices = random.sample(range(n), m)
+                edgeList.extend([(index, j) for j in indices])
+                edgeList.extend([(j, index) for j in indices])
+        temporalEdgeList[t] = edgeList
+        t += dt
+    return temporalEdgeList
+
+def construct_neighbor_exchange_model(initialA, tmin=0, tmax=100, dt=1):
+    # this does random edge swaps
+    A = initialA.copy()
+    temporalA = [A]
+    while t < tmax:
+        i, j = np.nonzero(A)
+        ix = random.sample(range(len(i)), 2)
+        A[i[ix], j[ix]] = 0
+        A[j[ix], i[ix]] = 0
+        # thise might reduce the number of edges if this edge already exists
+        A[i[ix], j[reverse(ix)]] = 1
+        A[j[ix], i[reverse(ix)]] = 1
+        t += dt
+        temporalA.append(A)
+
+    return temporalA
+
+def temporal_to_static_network(temporalA, isWeighted=False):
+    if isWeighted:
+        staticEdgeList = list()
+    else:
+        staticEdgeList = set()
+    for time, edgeList in temporalA.items():
+        for edge in edgeList:
+            if isWeighted:
+                staticEdgeList.append(edge)
+            else:
+                staticEdgeList.add(edge)
+    if isWeighted:
+        return staticEdgeList
+    else:
+        return list(staticEdgeList)
+
+
+def generate_activities_from_data(filename, delimiter, n, exponent, a, b, nu, epsilon):
+    activities = dict()
+    with csv.open(filename, delimiter=delimiter) as contactList:
+        for contactData in contactList:
+            t = contactData[0]
+            i = contactData[1]
+            j =contactData[2]
+            try:
+                # increment the degree assuming undirected
+                activities[t][i,j] += 1
+                activities[t][j] += 1
+            except:
+                activities[t] = np.zeros(n)
+                activities[t][i] = 1
+                activities[t][j] = 1
+    return activities # or should it be the average
