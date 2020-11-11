@@ -114,15 +114,68 @@ def import_temporal_networks(filename, delimiter = " "):
                 temporalEdgeList[t] =[(i,j), (j,i)]
     return len(node_num), temporalEdgeList
 
-def viral_load(time):
-    # update with implementation similar to what Dan has in testing paper
-    # other options
-    # for a placeholder, here is a gamma function
-    return time/4*math.exp(time/2)
-def vl_prob():
-    # update with implementation similar to what Dan has in testing paper
-    return 0.5
+def viral_load():
 
+    #function based off of Dan's paper. might need to tweak based on how we do time scales
+    #these are in terms of log_10
+    vl_list = [0.0]
+
+    # first point to draw from dist (first time of infectiousness)
+    inf_onset_day = int(random.uniform(2,4)) # VL = 10^3
+
+    # peak point to draw from dist
+    peak_day = inf_onset_day + int(0.2 + math.gamma(1.8))
+    peak_VL = unf(7, 11)
+
+    # last point to draw from dist
+    recovery_day = peak_day + random.uniform(5, 10) #VL = 10^6
+
+    #slope before infectious
+    s_beforeInf = (3 - 0)/(inf_onset_day - 0)
+
+    #slope after infectious and before peak
+    s_mid = (peak_VL - 3)/(peak_day - inf_onset_day)
+    b_mid = peak_VL - s_mid*peak_day
+
+    #slope after peak
+    s_afterPeak = (peak_VL - 6)/(peak_day - recovery_day)
+    b_afterPeak = peak_VL - s_afterPeak*peak_day
+    #get day when we are no longer infectious, <= 3
+    lastDay = (3 - b_afterPeak)/s_afterPeak # when VL = 3 again
+
+
+    #iterate for each day and save to list based on slopes.
+    t = 1
+    while t <= lastDay:
+        if t < inf_onset_day:
+            vl_list.append(s_beforeInf*t + 0)
+        elif t == inf_onset_day:
+            vl_list.append(3)
+        elif inf_onset_day < t and t < peak_day:
+            vl_list.append(s_mid*t + b_mid)
+        elif t == peak_day:
+            vl_list.append(peak_VL)
+        else:
+            vl_list.append(s_afterPeak*t + b_afterPeak)
+        t = t + 1
+
+    return vl_list
+
+def vl_prob(viral_load):
+    # update with implementation similar to what Dan has in testing paper
+    if viral_load < 3:
+        return 0.0
+    elif viral_load >= 6:
+        return 1.0
+    else:
+        return math.log10(viral_load)/(3) # check on this
+
+def get_edge_duration(edge):
+    return 0.0 # write this function
+
+def prob_with_edge_duration(prob, duration):
+    #need to come up with how to increase the probability based off of how long duration is
+    return 0.0
 def generate_activities(n, exponent, nu, epsilon):
     activities = list()
     for index in range(n):
