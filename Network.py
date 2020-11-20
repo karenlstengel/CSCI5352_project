@@ -21,15 +21,16 @@ class Network:
         self.pos = setPos(k) #for visualizations
         self.SIR_prob = SIR_prob
 
-    def run_temporal_contagion(self, gamma, beta, tmin=0, tmax=100, dt=1, initial_infected=None, initial_recovered=None, useEdgeDuration = False, exp_name = 'testing_drawFunc_nx/'):
+    def run_temporal_contagion(self, gamma, beta, tmin=0, tmax=100, dt=1, time_steps = 'daily', initial_infected=None, initial_recovered=None, useEdgeDuration = False, exp_name = 'testing_drawFunc_nx/'):
+        # dt in
         n = len(self.node_list)
 
         if initial_infected is None:
             initial_infected = random.randrange(n)
             self.node_list[n]['status'] = 'I'
             self.node_list[n]['infect_time'] = tmin
-            self.node_list[n]['viral_loads'] = viral_load() #might need to change this based on literature....
-
+            self.node_list[n]['viral_loads'] = viral_load(time_steps) #might need to change this based on literature....
+            self.node_list[n]['remove_time'] = len(self.node_list[n]['viral_loads'])
         if initial_recovered is None:
             initial_recovered = []
 
@@ -43,6 +44,11 @@ class Network:
         S = [n - len(I) - len(R)]
         times = [tmin]
         while t <= tmax:
+            #account for a static network
+            index = t
+            if self.netType == 'static':
+                index = 0
+
             # infect shit
             for infected_node in I:
                 prob_of_infection = 0.0
@@ -57,7 +63,7 @@ class Network:
                     #else -> use default SIR probability
                     prob_of_infection = self.SIR_prob
 
-                #if VL is low enough and time since infection is > 7 # might change
+                #if VL is low enough and time since infection is > 7 # might change DOUBLE CHECK THIS IF NEEDED.
                 if (t - nodeList[infected_node]['infect_time']) >= 7 and vl_current <= threshold:
                     print("not infectious")
                     # set status of i to 'R' and change removed time to be t
@@ -66,7 +72,7 @@ class Network:
                     I.remove(infected_node)
 
                 else:
-                    for edge_tuple in edge_list[t]: # of i at time t
+                    for edge_tuple in edge_list[index]: # of i at time t
                         if infected_node in edge_tuple:
 
                             #if node is 'S'
@@ -77,13 +83,19 @@ class Network:
                             if edge_tuple[neighbor]['status'] == 'S':
 
                                 # do edge duration if using
+                                if useEdgeDuration:
+                                    duration = get_edge_duration(edgeList, edge, t)
+                                    prob_of_infection = prob_with_edge_duration(prob_of_infection, duration)
+                                
                                 #infect with probablility p
                                 to_infect = random.random()
                                 if to_infect < prob_of_infection:
                                     # update status, infect_time at time t
                                     self.node_list[neighbor]['status'] = 'I'
                                     self.node_list[neighbor]['infect_time'] = t
-                                    self.node_list[neighbor]['viral_loads'] = viral_load() #might need to change this based on literature....
+                                    self.node_list[neighbor]['viral_loads'] = viral_load(time_steps)
+                                    self.node_list[neighbor]['remove_time'] = t + len(self.node_list[neighbor]['viral_loads'])
+
             for n in self.node_list.keys():
                 if self.node_list[n]['status'] == 'I':
                     # check if this is the last day its infectious
@@ -96,11 +108,10 @@ class Network:
                 elif self.node_list[n]['status'] == 'R':
                     R.add(n)
 
-
             t += dt
             times.append(t)
 
-            drawContagion_nx(self.edgeList, self.nodeList, list(self.edge_list.keys())[t], exp_name = 'testing_drawFunc_nx/', pos = self.pos)
+            drawContagion_nx(self.edgeList, self.nodeList, list(self.edge_list.keys())[index], exp_name = 'testing_drawFunc_nx/', pos = self.pos)
         for n_final in self.node_list.keys():
             if n_final not in I and n_final not in R:
                 S.add(n_final)
