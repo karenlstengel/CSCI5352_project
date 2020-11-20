@@ -36,8 +36,8 @@ filename = "Data/School/primaryschool.csv"
 filename = "Data/School/High-School_data_2013.csv"
 delimiter = " "
 
-temporalA = temporal_network.import_temporal_networks(filename, delimiter)
-web = webweb.Web(title="test")
+nodesA, temporalA = import_temporal_networks(filename, delimiter)
+'''web = webweb.Web(title="test")
 
 i = 0
 for time, A in temporalA.items():
@@ -50,13 +50,14 @@ web.display.sizeBy = 'strength'
 web.display.showLegend = True
 web.display.colorPalette = 'Dark2'
 web.display.colorBy = 'degree'
-web.show()
+web.show()'''
 
 #---------------------------------------------------------------------------------
 #OOP Version
-network = Network(filename = filename)
-edgeList = network.edge_list
-nodeList = network.node_list
-print(nodeList[0])
-#print(nodeList[1])
+staticA = temporal_to_static_network(temporalA)
+network = Network(nodesA, staticA, contagionType = 'VL')
+#print(network.node_list.keys())
+network.run_temporal_contagion(0, 0, tmax=20, exp_name = 'testing_static_VL/')
+
+
 #print(nodeList[2])

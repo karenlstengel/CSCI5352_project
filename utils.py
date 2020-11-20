@@ -2,17 +2,23 @@ import numpy as np
 import random
 import csv
 import math
+import os
 from scipy.sparse import csr_matrix
 import graph_tool as gt
+import networkx as nx
+import matplotlib.colors as mc
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
-def drawContagion_nx(edgeList, nodeList, ts, exp_name = '', pos = None):
+def drawContagion_nx(edge_list, node_list, index, ts, exp_name = '', pos = None, show_uninfected_edges = False):
     #print("hi")
+    #TO DO: ADD 2ND PLOT WITH ALL CURRENT EDGES AS ONE COLOR REGARDLESS OF IF INFECTED
     if not os.path.exists('output/' + exp_name):
         os.makedirs('output/' + exp_name)
 
     plt.figure(figsize = (10,10))
 
-    #for ts in [list(edgeList.keys())[0]]: #list(edgeList.keys())):
+    #for ts in [list(edge_list.keys())[0]]: #list(edge_list.keys())):
     print('Drawing the graph for time ' + str(ts))
 
     I = []
@@ -20,15 +26,15 @@ def drawContagion_nx(edgeList, nodeList, ts, exp_name = '', pos = None):
     R = []
 
     G = nx.Graph()
-    G.add_nodes_from(list(nodeList.keys()))
+    G.add_nodes_from(list(node_list.keys()))
     #print('Nodes: ', G.nodes())
-    #print(edgeList[ts])
-    G.add_edges_from(edgeList[ts])
+    #print(edge_list[ts])
+    G.add_edges_from(edge_list[index])
     #nx.draw(G)
     #G_gv = nx.nx_agraph.to_agraph(G)
     #print(G_gv.get_node('0'))
 
-    for node, vals in nodeList.items():
+    for node, vals in node_list.items():
         if vals['status'] == 'I':
             I.append(node)
         elif vals['status'] == 'S':
@@ -36,17 +42,24 @@ def drawContagion_nx(edgeList, nodeList, ts, exp_name = '', pos = None):
         elif vals['status'] == 'R':
             R.append(node)
 
+    edge_inf = []
     edge_probs = []
-    for edge in edgeList[ts]:
-        if nodeList[edge[0]]['status'] == 'I':
-            if nodeList[edge[1]]['status'] == 'S':
-                edge_probs.append(nodeList[edge[0]]['infect_prob'])
+    edge_uninf = []
+    for edge in edge_list[index]:
+        vl_index_0 = ts - node_list[edge[0]]['infect_time']
+        vl_index_1 = ts - node_list[edge[1]]['infect_time']
 
-        elif nodeList[edge[1]]['status'] == 'I':
-            if nodeList[edge[0]]['status'] == 'S':
-                edge_probs.append(nodeList[edge[1]]['infect_prob'])
+        if node_list[edge[0]]['status'] == 'I':
+            if node_list[edge[1]]['status'] == 'S':
+                edge_inf.append(edge)
+                edge_probs.append( vl_prob(node_list[edge[0]]['viral_loads'][vl_index_0]) )
+
+        elif node_list[edge[1]]['status'] == 'I':
+            if node_list[edge[0]]['status'] == 'S':
+                edge_inf.append(edge)
+                edge_probs.append( vl_prob(node_list[edge[1]]['viral_loads'][vl_index_1]) ) # change to use vl_prob() @ ts
         else:
-            edge_probs.append(nodeList[edge[0]]['infect_prob'])
+            edge_uninf.append(edge) # no chance of spread
         #G.edges()[edge]['weight'] = edge_colors[-1]
     #print(edge_probs)
 
@@ -77,42 +90,48 @@ def drawContagion_nx(edgeList, nodeList, ts, exp_name = '', pos = None):
                        label = 'R').set_edgecolor('k');
 
     # edges
-    e_cb = nx.draw_networkx_edges(G, pos, width=1.0,
+    e_cb = nx.draw_networkx_edges(G, pos, edgelist = edge_inf, width=1.0,
                            edge_cmap = 'plasma',
                            edge_vmin = 0, edge_vmax = 1.0,
                            edge_color = edge_colors);
+    if show_uninfected_edges:
+        e_cb = nx.draw_networkx_edges(G, pos, edgelist = edge_uninf, width=1.0,
+                               edge_vmin = 0, edge_vmax = 1.0,
+                               edge_color = 'tab:gray');
 
-    labels={n:str(n) for n in nodeList.keys()}
+    labels={n:str(n) for n in node_list.keys()}
     #nx.draw_networkx_labels(G,pos,labels,font_size=8)
 
     plt.legend(title = 'Legend');
 
 
-    cbar = plt.colorbar(e_cb, ticks = np.arange(0.0, 1.1, 0.1), label = 'Probability of Infection')
+    cbar = plt.colorbar(e_cb, ticks = np.arange(0.0, 1.1, 0.1), label = 'Probability of Infection', cmap = 'plasma') #e_cb
+
     cbar.ax.set_yticklabels([str(round(n, 1)) for n in np.arange(0.0, 1.1, 0.1)])
 
     plt.title('Test 1, time: ' + str(int(ts)))
     plt.savefig('output/' + exp_name + 'simTime_{0:05d}.jpg'.format(int(ts)))
+    plt.close()
     #--------------------------------------------------------------------------
 
 # Helper functions
 # use this to import sociopatterns data
 def import_temporal_networks(filename, delimiter = " "):
     temporalEdgeList = dict()
-    node_num = set([])
+    nodes = set([])
     with open(filename) as contactData:
         contactList = csv.reader(contactData, delimiter=delimiter)
         for contact in contactList:
             t = float(contact[0])
             i = int(contact[1])
             j = int(contact[2])
-            node_num.add(i)
-            node_num.add(j)
+            nodes.add(i)
+            nodes.add(j)
             try:
                 temporalEdgeList[t].extend([(i,j), (j,i)])
             except:
                 temporalEdgeList[t] =[(i,j), (j,i)]
-    return len(node_num), temporalEdgeList
+    return nodes, temporalEdgeList
 
 def viral_load(time_steps): # adjust for delta t
 
@@ -125,7 +144,7 @@ def viral_load(time_steps): # adjust for delta t
 
     # peak point to draw from dist
     peak_day = inf_onset_day + 0.2 + math.gamma(1.8)
-    peak_VL = unf(7, 11)
+    peak_VL = random.uniform(7, 11)
 
     # last point to draw from dist
     recovery_day = peak_day + random.uniform(5, 10) #VL = 10^6
@@ -154,10 +173,10 @@ def viral_load(time_steps): # adjust for delta t
         peak_day = peak_day * 24*60
 
     elif time_steps == 'daily':
-        lastDay = int(lastDay)
+        lastDay = int(lastDay) + 1
         inf_onset_day = int(inf_onset_day)
-        peak_day = int(peakDay)
-        
+        peak_day = int(peak_day)
+
     #iterate for each day and save to list based on slopes.
     t = 1
     while t <= lastDay: #fix below to account for different time scales
@@ -184,7 +203,7 @@ def vl_prob(viral_load):
     else:
         return (math.log10(viral_load) - math.log10(3))/math.log10(2) # check on this
 
-def get_edge_duration(edgeList, edge, t):
+def get_edge_duration(edge_list, edge, t):
     return 0.0 # write this function
 
 def prob_with_edge_duration(vl_prob, duration):
@@ -206,13 +225,13 @@ def construct_activity_driven_model(n, m, activities, tmin=0, tmax=100, dt=1):
     t = tmin
     temporalEdgeList = dict()
     while t < tmax:
-        edgeList = list()
+        edge_list = list()
         for index in range(n):
             if random.random() <= activities[index]*dt:
                 indices = random.sample(range(n), m)
-                edgeList.extend([(index, j) for j in indices])
-                edgeList.extend([(j, index) for j in indices])
-        temporalEdgeList[t] = edgeList
+                edge_list.extend([(index, j) for j in indices])
+                edge_list.extend([(j, index) for j in indices])
+        temporalEdgeList[t] = edge_list
         t += dt
     return temporalEdgeList
 
@@ -238,8 +257,8 @@ def temporal_to_static_network(temporalA, isWeighted=False):
         staticEdgeList = list()
     else:
         staticEdgeList = set()
-    for time, edgeList in temporalA.items():
-        for edge in edgeList:
+    for time, edge_list in temporalA.items():
+        for edge in edge_list:
             if isWeighted:
                 staticEdgeList.append(edge)
             else:
@@ -247,7 +266,7 @@ def temporal_to_static_network(temporalA, isWeighted=False):
     if isWeighted:
         return staticEdgeList
     else:
-        return list(staticEdgeList)
+        return {0:list(staticEdgeList)}
 
 
 def generate_activities_from_data(filename, delimiter, n, exponent, a, b, nu, epsilon):
