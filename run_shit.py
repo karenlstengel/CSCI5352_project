@@ -1,10 +1,12 @@
 # run da functions etc
+import os
 import temporal_network
 import matplotlib.pyplot as plt
+import pickle
 import webweb
 from Network import *
 from utils import * # TODO this is where the network builing functions will live
-
+os.system('clear')
 n = 100
 m = 2
 exponent = 2.8
@@ -54,10 +56,14 @@ web.show()'''
 
 #---------------------------------------------------------------------------------
 #OOP Version
+exp_name = 'testing_temporal_VL/'
+
 staticA = temporal_to_static_network(temporalA)
-network = Network(nodesA, staticA, contagionType = 'VL')
+network = Network(nodesA, temporalA, contagionType = 'VL')
 #print(network.node_list.keys())
-network.run_temporal_contagion(0, 0, tmax=20, exp_name = 'testing_static_VL/')
+network.run_temporal_contagion(0, 0, tmax=10, exp_name = exp_name)
+plot_stats(network.edge_list, network.node_list, tmax = 10, time_steps = 'day', exp_name = exp_name)
 
-
+print('DONE.')
+# pickle things to plot later
 #print(nodeList[2])
