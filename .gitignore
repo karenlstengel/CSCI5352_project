@@ -135,6 +135,7 @@ dmypy.json
 *.png
 *.jpg
 *.gif
+*.pdf
 
 # Latex files
 
