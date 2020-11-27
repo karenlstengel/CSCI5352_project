@@ -28,7 +28,7 @@ class Network:
         print('Running a ' + self.netType+ ' network with the ' + self.contagionModel + ' contagion model.')
         N = len(self.node_list)
 
-        times = np.arange(tmin, tmax + 1)
+        times = list(np.arange(tmin, tmax + 1))
         if len(self.edge_list) > 1: #case where we are doing dynamics on a dynamic network
             times = list(self.edge_list.keys())
 
@@ -73,10 +73,13 @@ class Network:
                 elif self.node_list[n]['status'] == 'R': # think about SIR recovery.
                     R.add(n)
             print('There are currently ' + str(N - len(I) - len(R)) + ' susecptible, ' + str(len(I)) + ' infected, ' + str(len(R)) + ' recovered (out of ' + str(N) + ').')
+
+            if len(R) == N:
+                break
             # infect shit
             for infected_node in I:
                 prob_of_infection = 0.0
-                neighbors = get_neighbors(self.edge_list[index], infected_node)
+                neighbors, sus_neighbors = get_neighbors(self.edge_list[index], self.node_list, infected_node)
                 #print(self.node_list[infected_node], self.node_list[infected_node]['status'])
                 if self.contagionModel == 'VL':
                     # -> calculate viral viral_load at time t (t - 'infected_time')
@@ -88,50 +91,55 @@ class Network:
 
                     # ->calculate probability of infection: infectiousness was taken to be proportional to the logarithm of viral load in excess of 106 cp/ml {Larremore 2020}
                     prob_of_infection = vl_prob(vl_current)
-                    print( '\t Node ' + str(infected_node) + ' is infected (probability of spread: ' + str(prob_of_infection) + '; viral load: ' + str(vl_current)+ ') and has ' + str(len(neighbors)) + ' neighbors.')
+                    print( '\t Node ' + str(infected_node) + ' is infected (probability of spread: ' + str(prob_of_infection) + '; viral load: ' + str(vl_current)+ ') and has ' + str(len(sus_neighbors)) + ' susecptible neighbors.')
                 else:
                     #else -> use default SIR probability
                     prob_of_infection = self.SIR_prob
-                    print( '\t Node ' + str(infected_node) + ' is infected (probability of spread: ' + str(prob_of_infection) + ') and has ' + str(len(neighbors)) + ' neighbors.')
+                    print( '\t Node ' + str(infected_node) + ' is infected (probability of spread: ' + str(prob_of_infection) + ') and has ' + str(len(sus_neighbors)) + ' susecptible neighbors.')
 
                 num_infected_by_inf = 0
-                for neighbor in neighbors: # of i at time t
+                if len(sus_neighbors) > 0:
+                    for neighbor in sus_neighbors: # of i at time t
 
-                    if toPrintNodeUpdates:
-                        print('\t \t Node ' + str(infected_node) + ' comes into contact with node ' + str(neighbor) + ' who', end = ' ')
-                    if self.node_list[neighbor]['status'] == 'S':
+                        if toPrintNodeUpdates:
+                            print('\t \t Node ' + str(infected_node) + ' comes into contact with node ' + str(neighbor) + ' who', end = ' ')
+                        if self.node_list[neighbor]['status'] == 'S':
 
-                        # do edge duration if using
-                        if useEdgeDuration:
-                            duration = get_edge_duration(self.edge_list, edge, t)
-                            prob_of_infection = prob_with_edge_duration(prob_of_infection, duration)
+                            # do edge duration if using
+                            if useEdgeDuration:
+                                duration = get_edge_duration(self.edge_list, edge, t)
+                                prob_of_infection = prob_with_edge_duration(prob_of_infection, duration)
 
-                        #infect with probablility p
-                        to_infect = random.random()
-                        if to_infect < prob_of_infection:
-                            # update status, infect_time at time t
-                            self.node_list[neighbor]['status'] = 'I'
-                            self.node_list[neighbor]['infect_time'] = t
-                            self.node_list[neighbor]['viral_loads'] = viral_load(time_steps)
-                            self.node_list[neighbor]['remove_time'] = t + len(self.node_list[neighbor]['viral_loads'])
+                            #infect with probablility p
+                            to_infect = random.random()
+                            if to_infect < prob_of_infection:
+                                # update status, infect_time at time t
+                                self.node_list[neighbor]['status'] = 'I'
+                                self.node_list[neighbor]['infect_time'] = t
+                                self.node_list[neighbor]['viral_loads'] = viral_load(time_steps)
+                                self.node_list[neighbor]['remove_time'] = ts + len(self.node_list[neighbor]['viral_loads'])
+                                if toPrintNodeUpdates:
+                                    print(' is infected.')
+                                num_infected_by_inf = num_infected_by_inf + 1
+                            else:
+                                if toPrintNodeUpdates:
+                                    print(' is not infected.')
+                        elif  self.node_list[neighbor]['status'] == 'I':
                             if toPrintNodeUpdates:
-                                print(' is infected.')
-                            num_infected_by_inf = num_infected_by_inf + 1
+                                print(' was already infected.')
                         else:
                             if toPrintNodeUpdates:
-                                print(' is not infected.')
-                    elif  self.node_list[neighbor]['status'] == 'I':
-                        if toPrintNodeUpdates:
-                            print(' was already infected.')
-                    else:
-                        if toPrintNodeUpdates:
-                            print(' is recovered.')
-                print('\t \t Node ' + str(infected_node) + ' infected ' + str(num_infected_by_inf) + ' other nodes (' + str((num_infected_by_inf/len(neighbors))*100)+ '% of its neighbors).')
+                                print(' is recovered.')
+                    print('\t \t Node ' + str(infected_node) + ' infected ' + str(num_infected_by_inf) + ' other nodes (' + str((num_infected_by_inf/len(neighbors))*100)+ '% of its neighbors).')
+
+                else:
+                    print('\t \t There are no nodes to infect (number of susecptible neighbors is 0).')
+                #fix percent error
                 print()
             print('-------------------------------------------------------------------------------')
             print('-------------------------------------------------------------------------------')
 
-            drawContagion_nx(self.edge_list, self.node_list, index, t, exp_name = exp_name, pos = self.pos)
+            drawContagion_nx(self.edge_list, self.node_list, index, t, times, exp_name = exp_name, pos = self.pos)
 
         for n_final in self.node_list.keys():
             if n_final not in I and n_final not in R:

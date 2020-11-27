@@ -10,14 +10,14 @@ import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-def drawContagion_nx(edge_list, node_list, index, ts, exp_name = '', pos = None, show_uninfected_edges = False):
+def drawContagion_nx(edge_list, node_list, index, ts, times, exp_name = '', pos = None, show_uninfected_edges = False):
     #print("hi")
     #TO DO: INCREASE FONT SIZES. UPDATE SUP TITLE W MORE INFORMATION.
     if not os.path.exists('output/' + exp_name):
         os.makedirs('output/' + exp_name)
     #SET EVERYTHING UP FOR PLOTTING
     #print('Drawing the graph for time ' + str(ts))
-
+    times = list(times)
     I = []
     S = []
     R = []
@@ -42,16 +42,18 @@ def drawContagion_nx(edge_list, node_list, index, ts, exp_name = '', pos = None,
     edge_inf = []
     edge_probs = []
     edge_uninf = []
-    for edge in edge_list[index]:
-        vl_index_0 = ts - node_list[edge[0]]['infect_time'] # fix this to account for new changes.
-        vl_index_1 = ts - node_list[edge[1]]['infect_time'] # fix this to account for new changes.
+    for edge in edge_list[index]: #int(times.index(ts) - times.index(self.node_list[infected_node]['infect_time']))
+        #vl_index_0 = int(times.index(ts) - times.index(node_list[edge[0]]['infect_time'])) # fix this to account for new changes.
+        #vl_index_1 = int(times.index(ts) - times.index(node_list[edge[1]]['infect_time'])) # fix this to account for new changes.
 
         if node_list[edge[0]]['status'] == 'I':
+            vl_index_0 = int(times.index(ts) - times.index(node_list[edge[0]]['infect_time']))
             if node_list[edge[1]]['status'] == 'S':
                 edge_inf.append(edge)
                 edge_probs.append( vl_prob(node_list[edge[0]]['viral_loads'][int(vl_index_0)]) )
 
         elif node_list[edge[1]]['status'] == 'I':
+            vl_index_1 = int(times.index(ts) - times.index(node_list[edge[1]]['infect_time']))
             if node_list[edge[0]]['status'] == 'S':
                 edge_inf.append(edge)
                 edge_probs.append( vl_prob(node_list[edge[1]]['viral_loads'][int(vl_index_1)]) ) # change to use vl_prob() @ ts
@@ -165,7 +167,7 @@ def plot_stats(edge_dict, node_dict, tmax = 100, time_steps = 'day', exp_name = 
     #--------------------------------------------------------------------------
     plt.subplot(221)
     mean_degree = []
-    for ts in range(tmax + 1):
+    for ts in range(tmax):
         index = ts
         if len(edge_dict) == 1:
             index = 0
@@ -325,16 +327,18 @@ def construct_activity_driven_model(n, m, activities, tmin=0, tmax=100, dt=1):
     # at each time step turn on a node w.p. a_i *deltaT
     t = tmin
     temporalEdgeList = dict()
+    nodes = set([])
     while t < tmax:
         edge_list = list()
         for index in range(n):
+            nodes.add(index)
             if random.random() <= activities[index]*dt:
                 indices = random.sample(range(n), m)
                 edge_list.extend([(index, j) for j in indices])
                 edge_list.extend([(j, index) for j in indices])
         temporalEdgeList[t] = edge_list
         t += dt
-    return temporalEdgeList
+    return nodes, temporalEdgeList
 
 def construct_neighbor_exchange_model(initialA, tmin=0, tmax=100, dt=1):
     # this does random edge swaps
@@ -387,13 +391,16 @@ def generate_activities_from_data(filename, delimiter, n, exponent, a, b, nu, ep
                 activities[t][j] = 1
     return activities # or should it be the average
 
-def get_neighbors(edge_list, node):
+def get_neighbors(edge_list, node_list, node):
     neighbors = set([])
+    sus_neighbors = set([])
     for edge_tuple in edge_list: # of i at time t get_neighbors(self.edge_list[index], infected_node)
         if node in edge_tuple:
             i_n_index = edge_tuple.index(node)
             neighbor = edge_tuple[0]
             if i_n_index == 0:
                 neighbor = edge_tuple[1]
+            if node_list[neighbor]['status'] == 'S':
+                sus_neighbors.add(neighbor)
             neighbors.add(neighbor)
-    return neighbors
+    return neighbors, sus_neighbors
