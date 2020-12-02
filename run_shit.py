@@ -2,6 +2,7 @@
 import os
 import temporal_network
 import matplotlib.pyplot as plt
+import networkx as nx
 import pickle
 import webweb
 from Network import *
@@ -12,48 +13,53 @@ filename = "Data/School/thiers_2011.csv"
 filename = "Data/School/thiers_2012.csv"
 #filename = "Data/Workplace/tij_InVS.dat"
 filename = "Data/School/primaryschool.csv"
-filename = "Data/School/High-School_data_2013.csv"
+filename = "Data/School/High-School_data_2013.csv" # 20 secs. -> convert to minutes
 delimiter = " "
 
 #nodesA, temporalA = import_temporal_networks(filename, delimiter)
 n = 100
+p = 0.15
 m = 2
 exponent = 2.8
 nu = 100
 epsilon = 1e-3
 #
-activities = generate_activities(n, exponent, nu, epsilon)
-nodesA, temporalA = construct_activity_driven_model(n, m, activities, tmin=0, tmax=100, dt=1)
-
+#activities = generate_activities(n, exponent, nu, epsilon)
+#nodesA, temporalA = construct_activity_driven_model(n, m, activities, tmin=0, tmax=100, dt=1)
+G = nx.gnp_random_graph(n, p, directed=False)
+nodesA = G.nodes()
+print(nodesA)
+initial_infected = np.random.choice(list(nodesA))
 #---------------------------------------------------------------------------------
 #OOP Version
-exp_name = 'testing_temporal_VL/'
+exp_name = 'static_VL/'
 
-staticA = temporal_to_static_network(temporalA)
+staticA = {0: list(G.edges())}#temporal_to_static_network(temporalA)
 #network = Network(nodesA, temporalA, contagionType = 'VL')
 network = Network(nodesA, staticA, contagionType = 'VL')
 
-print(network.edge_list.keys())
-network.run_temporal_contagion(0, 0, tmax=100, exp_name = exp_name)
-plot_stats(network.edge_list, network.node_list, tmax = 100, time_steps = 'day', exp_name = exp_name)
+network.run_temporal_contagion(0, 0, tmax=100, exp_name = exp_name, time_steps = 'day', initial_infected = initial_infected)
+#plot_stats(network.edge_list, network.node_list, tmax = 100, time_steps = 'day', exp_name = exp_name)
 
 print('DONE.')
 # pickle things to plot later
-#print(nodeList[2])
+pickle.dump( network.edge_list, open( "output/" + exp_name + "edge_list.p", "wb" ) )
+pickle.dump( network.node_list, open( "output/" + exp_name + "node_list.p", "wb" ) )
 
-#
-# # visualize
-# web = webweb.Web(title="test")
-#
-# for time, A in temporalA.items():
-#     print(time)
-#     web.networks.__dict__[str(time)] = webweb.webweb.Network(adjacency=A)
-#
-# web.display.sizeBy = 'strength'
-# web.display.showLegend = True
-# web.display.colorPalette = 'Dark2'
-# web.display.colorBy = ''
-# web.show()
+
+print("Starting SIR model")
+exp_name = 'static_SIR/'
+#network2 = Network(nodesA, temporalA, contagionType = 'SIR')
+network2 = Network(nodesA, staticA, contagionType = 'SIR')
+
+network2.run_temporal_contagion(0, 0, tmax=1000, exp_name = exp_name, time_steps = 'day', initial_infected = initial_infected)
+#plot_stats(network.edge_list, network.node_list, tmax = 100, time_steps = 'day', exp_name = exp_name)
+
+print('DONE.')
+# pickle things to plot later
+pickle.dump( network2.edge_list, open( "output/" + exp_name + "edge_list.p", "wb" ) )
+pickle.dump( network2.node_list, open( "output/" + exp_name + "node_list.p", "wb" ) )
+
 
 
 #

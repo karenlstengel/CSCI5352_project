@@ -10,7 +10,7 @@ import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-def drawContagion_nx(edge_list, node_list, index, ts, times, exp_name = '', pos = None, show_uninfected_edges = False):
+def drawContagion_nx(edge_list, node_list, index, ts, times, exp_name = '', pos = None, show_uninfected_edges = False, contagionModel = 'VL', SIR_prob = 0.3):
     #print("hi")
     #TO DO: INCREASE FONT SIZES. UPDATE SUP TITLE W MORE INFORMATION.
     if not os.path.exists('output/' + exp_name):
@@ -42,21 +42,66 @@ def drawContagion_nx(edge_list, node_list, index, ts, times, exp_name = '', pos 
     edge_inf = []
     edge_probs = []
     edge_uninf = []
-    for edge in edge_list[index]: #int(times.index(ts) - times.index(self.node_list[infected_node]['infect_time']))
-        #vl_index_0 = int(times.index(ts) - times.index(node_list[edge[0]]['infect_time'])) # fix this to account for new changes.
-        #vl_index_1 = int(times.index(ts) - times.index(node_list[edge[1]]['infect_time'])) # fix this to account for new changes.
+    for edge in edge_list[index]:
 
         if node_list[edge[0]]['status'] == 'I':
             vl_index_0 = int(times.index(ts) - times.index(node_list[edge[0]]['infect_time']))
             if node_list[edge[1]]['status'] == 'S':
                 edge_inf.append(edge)
-                edge_probs.append( vl_prob(node_list[edge[0]]['viral_loads'][int(vl_index_0)]) )
+
+                if contagionModel == 'SIR':
+                    edge_probs.append(SIR_prob)
+                else:
+                    edge_probs.append( vl_prob(node_list[edge[0]]['viral_loads'][int(vl_index_0)]) )
+            elif node_list[edge[1]]['status'] == 'I':
+                vl_index_1 = int(times.index(ts) - times.index(node_list[edge[1]]['infect_time']))
+                # if index 0 == 0 then use index 1 prob and add edge
+                if vl_index_0 == 0:
+                    edge_inf.append(edge)
+                    if contagionModel == 'SIR':
+                        edge_probs.append(SIR_prob)
+                    else:
+                        edge_probs.append( vl_prob(node_list[edge[1]]['viral_loads'][int(vl_index_1)]) )
+                #if index 1 == 0 then use index 0 prob and add edge
+                elif vl_index_1 == 0:
+                    edge_inf.append(edge)
+                    if contagionModel == 'SIR':
+                        edge_probs.append(SIR_prob)
+                    else:
+                        edge_probs.append( vl_prob(node_list[edge[0]]['viral_loads'][int(vl_index_0)]) )
+                #otherwise we toss edge
+                else:
+                    edge_uninf.append(edge) # no chance of spread
 
         elif node_list[edge[1]]['status'] == 'I':
             vl_index_1 = int(times.index(ts) - times.index(node_list[edge[1]]['infect_time']))
             if node_list[edge[0]]['status'] == 'S':
                 edge_inf.append(edge)
-                edge_probs.append( vl_prob(node_list[edge[1]]['viral_loads'][int(vl_index_1)]) ) # change to use vl_prob() @ ts
+                if contagionModel == 'SIR':
+                    edge_probs.append(SIR_prob)
+                else:
+                    edge_probs.append( vl_prob(node_list[edge[1]]['viral_loads'][int(vl_index_1)]) ) # change to use vl_prob() @ ts
+
+            elif node_list[edge[0]]['status'] == 'I':
+                vl_index_0 = int(times.index(ts) - times.index(node_list[edge[0]]['infect_time']))
+                # if index 0 == 0 then use index 1 prob and add edge
+                if vl_index_0 == 0:
+                    edge_inf.append(edge)
+                    if contagionModel == 'SIR':
+                        edge_probs.append(SIR_prob)
+                    else:
+                        edge_probs.append( vl_prob(node_list[edge[1]]['viral_loads'][int(vl_index_1)]) )
+                #if index 1 == 0 then use index 0 prob and add edge
+                elif vl_index_1 == 0:
+                    edge_inf.append(edge)
+                    if contagionModel == 'SIR':
+                        edge_probs.append(SIR_prob)
+                    else:
+                        edge_probs.append( vl_prob(node_list[edge[0]]['viral_loads'][int(vl_index_0)]) )
+                #otherwise we toss edge
+                else:
+                    edge_uninf.append(edge) # no chance of spread
+
         else:
             edge_uninf.append(edge) # no chance of spread
         #G.edges()[edge]['weight'] = edge_colors[-1]
@@ -243,14 +288,14 @@ def viral_load(time_steps): # adjust for delta t
     vl_list = [0.0]
 
     # first point to draw from dist (first time of infectiousness)
-    inf_onset_day = random.uniform(2,4) # VL = 10^3
+    inf_onset_day = random.choice(np.arange(2,4, 0.2)) # VL = 10^3
 
     # peak point to draw from dist
     peak_day = inf_onset_day + 0.2 + math.gamma(1.8)
-    peak_VL = random.uniform(7, 11)
+    peak_VL = random.choice(np.arange(7, 11, 0.1))
 
     # last point to draw from dist
-    recovery_day = peak_day + random.uniform(5, 10) #VL = 10^6
+    recovery_day = peak_day + random.choice(np.arange(5, 10, 0.2)) #VL = 10^6
 
     #slope before infectious
     s_beforeInf = (3 - 0)/(inf_onset_day - 0)
@@ -278,8 +323,8 @@ def viral_load(time_steps): # adjust for delta t
     elif time_steps == 'day':
         lastDay = int(lastDay) + 1
         inf_onset_day = int(inf_onset_day)
-        peak_day = int(peak_day) + 1
-    #print('VL key days: ', inf_onset_day, peak_day, lastDay)
+        peak_day = int(peak_day) + 3
+    print('VL key days: ', inf_onset_day, peak_day, lastDay, peak_VL)
     #iterate for each day and save to list based on slopes.
     t = 1
     while t <= lastDay: #fix below to account for different time scales

@@ -8,7 +8,7 @@ from scipy.sparse import csr_matrix
 from utils import *
 
 class Network:
-    def __init__(self, nodes, edge_list, node_attrs = None, k = 2.5, SIR_prob = 0.1, contagionType = 'VL'):
+    def __init__(self, nodes, edge_list, node_attrs = None, k = 2.5, SIR_prob = 0.3, contagionType = 'VL'):
         '''
             num_nodes : number of nodes in the network if not passing in a file
         '''
@@ -43,6 +43,11 @@ class Network:
             self.node_list[n]['remove_time'] = len(self.node_list[n]['viral_loads'])
         else:
             print('add initial infected to I and update statuses in node_list')
+            self.node_list[initial_infected]['status'] = 'I'
+            self.node_list[initial_infected]['infect_time'] = times[0]
+            self.node_list[initial_infected]['viral_loads'] = viral_load(time_steps) #might need to change this based on literature....
+            self.node_list[initial_infected]['remove_time'] = len(self.node_list[initial_infected]['viral_loads'])
+
         if initial_recovered is None:
             initial_recovered = []
 
@@ -50,7 +55,6 @@ class Network:
         R = set([]) # list of recovered nodes at time t
 
         S = set([])
-
         for ts, t in enumerate(times):
             #account for a static network
             print('Simulation time : ' + str(t) + ' (' + str(ts)+ ' of ' + str(len(times)) + ').', end = ' ')
@@ -74,7 +78,7 @@ class Network:
                     R.add(n)
             print('There are currently ' + str(N - len(I) - len(R)) + ' susecptible, ' + str(len(I)) + ' infected, ' + str(len(R)) + ' recovered (out of ' + str(N) + ').')
 
-            if len(R) == N:
+            if len(R) == N or len(I) == 0:
                 break
             # infect shit
             for infected_node in I:
@@ -112,6 +116,7 @@ class Network:
 
                             #infect with probablility p
                             to_infect = random.random()
+                            print(to_infect, 'node: ', neighbor, prob_of_infection)
                             if to_infect < prob_of_infection:
                                 # update status, infect_time at time t
                                 self.node_list[neighbor]['status'] = 'I'
@@ -139,7 +144,7 @@ class Network:
             print('-------------------------------------------------------------------------------')
             print('-------------------------------------------------------------------------------')
 
-            drawContagion_nx(self.edge_list, self.node_list, index, t, times, exp_name = exp_name, pos = self.pos)
+            drawContagion_nx(self.edge_list, self.node_list, index, t, times, exp_name = exp_name, pos = self.pos, contagionModel = self.contagionModel, SIR_prob = self.SIR_prob)
 
         for n_final in self.node_list.keys():
             if n_final not in I and n_final not in R:

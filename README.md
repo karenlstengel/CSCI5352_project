@@ -19,7 +19,7 @@ If the `.yml` import doesn't work here is how to install `graph-tools` with Cond
 
 #### Make GIFs from images:
 `sudo apt-get install imagemagick` or `brew install imagemagick` (on MacOS)  
-`convert -delay 20 -loop 0 *.jpg myimage.gif`  
+`convert -delay 20 -loop 0 *.pdf myimage.gif`  
 
 <!--- end of section -->
 
