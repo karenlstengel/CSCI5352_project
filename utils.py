@@ -328,16 +328,23 @@ def viral_load(time_steps): # adjust for delta t
     #iterate for each day and save to list based on slopes.
     t = 1
     while t <= lastDay: #fix below to account for different time scales
+        v = 0
         if t < inf_onset_day:
-            vl_list.append(s_beforeInf*t + 0)
+            v = s_beforeInf*t + 0
+            vl_list.append(v)
         elif t == inf_onset_day:
-            vl_list.append(3)
+            v = 3
+            vl_list.append(v)
         elif inf_onset_day < t and t < peak_day:
-            vl_list.append(s_mid*t + b_mid)
+            v = s_mid*t + b_mid
+            vl_list.append(v)
         elif t == peak_day:
-            vl_list.append(peak_VL)
+            v = peak_VL
+            vl_list.append(v)
         else:
-            vl_list.append(s_afterPeak*t + b_afterPeak)
+            v = s_afterPeak*t + b_afterPeak
+            vl_list.append(v)
+        print(t, v)
         t = t + 1
     #print(vl_list)
     return vl_list
