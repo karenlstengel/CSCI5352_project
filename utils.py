@@ -286,7 +286,7 @@ def viral_load(time_steps): # adjust for delta t
     #function based off of Dan's paper. might need to tweak based on how we do time scales
     #these are in terms of log_10
     vl_list = [0.0]
-
+    #TO DO: ADJUST SLOPES BASED ON DT
     # first point to draw from dist (first time of infectiousness)
     inf_onset_day = random.choice(np.arange(2,4, 0.2)) # VL = 10^3
 
@@ -297,6 +297,26 @@ def viral_load(time_steps): # adjust for delta t
     # last point to draw from dist
     recovery_day = peak_day + random.choice(np.arange(5, 10, 0.2)) #VL = 10^6
 
+    t = 0
+    dt = 1
+    #adjust days based on timesteps
+    if time_steps == 'hour':
+        #lastDay = lastDay * 24
+        inf_onset_day = int(inf_onset_day * 24)
+        peak_day = int(peak_day * 24)
+        dt = 1/24
+
+    elif time_steps == 'minute':
+        #lastDay = lastDay *24*60
+        inf_onset_day = int(inf_onset_day * 24*60)
+        peak_day = int(peak_day * 24*60)
+        dt = 1/(24*60)
+
+    elif time_steps == 'day':
+        #lastDay = int(lastDay) + 1
+        inf_onset_day = int(inf_onset_day)
+        peak_day = int(peak_day) + 3
+
     #slope before infectious
     s_beforeInf = (3 - 0)/(inf_onset_day - 0)
 
@@ -305,48 +325,54 @@ def viral_load(time_steps): # adjust for delta t
     b_mid = peak_VL - s_mid*peak_day
 
     #slope after peak
-    s_afterPeak = (peak_VL - 6)/(peak_day - recovery_day)
+    s_afterPeak = - abs((peak_VL - 3)/(peak_day - recovery_day))
     b_afterPeak = peak_VL - s_afterPeak*peak_day
+    print(s_afterPeak, b_afterPeak, )
     #get day when we are no longer infectious, <= 3
-    lastDay = (3 - b_afterPeak)/s_afterPeak # when VL = 3 again
+    lastDay = int((3-b_afterPeak)/s_afterPeak)# when VL = 3 again
 
-    if time_steps == 'hour':
-        lastDay = lastDay * 24
-        inf_onset_day = inf_onset_day * 24
-        peak_day = peak_day * 24
-
-    elif time_steps == 'minute':
-        lastDay = lastDay *24*60
-        inf_onset_day = inf_onset_day * 24*60
-        peak_day = peak_day * 24*60
-
-    elif time_steps == 'day':
-        lastDay = int(lastDay) + 1
-        inf_onset_day = int(inf_onset_day)
-        peak_day = int(peak_day) + 3
-    print('VL key days: ', inf_onset_day, peak_day, lastDay, peak_VL)
+    # if time_steps == 'hour':
+    #     lastDay = lastDay * 24
+    # elif time_steps == 'minute':
+    #     lastDay = lastDay *24*60
+    # elif time_steps == 'day':
+    #     lastDay = int(lastDay) + 1
+    print('VL key times: ', inf_onset_day, peak_day, lastDay, peak_VL)
     #iterate for each day and save to list based on slopes.
-    t = 1
-    while t <= lastDay: #fix below to account for different time scales
-        v = 0
+    times = []
+    v = 0
+    cont = True
+    while cont: #fix below to account for different time scales
+
         if t < inf_onset_day:
             v = s_beforeInf*t + 0
             vl_list.append(v)
+            print('before infectious: ', end = ' ')
         elif t == inf_onset_day:
             v = 3
             vl_list.append(v)
+            print('infectious: ', end = ' ')
         elif inf_onset_day < t and t < peak_day:
             v = s_mid*t + b_mid
             vl_list.append(v)
+            print('after infectious and before peak: ', end = ' ')
         elif t == peak_day:
             v = peak_VL
             vl_list.append(v)
+            print('peak: ', end = ' ')
         else:
             v = s_afterPeak*t + b_afterPeak
             vl_list.append(v)
+            print('after peak: ', end = ' ')
+        if t > peak_day and v <= 3:
+            cont = False
+
         print(t, v)
+        times.append(t)
         t = t + 1
     #print(vl_list)
+    plt.plot(times, vl_list[:-1])
+    plt.show()
     return vl_list
 
 def vl_prob(viral_load):
