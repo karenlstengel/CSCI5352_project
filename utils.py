@@ -327,7 +327,7 @@ def viral_load(time_steps): # adjust for delta t
     #slope after peak
     s_afterPeak = - abs((peak_VL - 3)/(peak_day - recovery_day))
     b_afterPeak = peak_VL - s_afterPeak*peak_day
-    print(s_afterPeak, b_afterPeak, )
+    #print(s_afterPeak, b_afterPeak, )
     #get day when we are no longer infectious, <= 3
     lastDay = int((3-b_afterPeak)/s_afterPeak)# when VL = 3 again
 
@@ -337,7 +337,7 @@ def viral_load(time_steps): # adjust for delta t
     #     lastDay = lastDay *24*60
     # elif time_steps == 'day':
     #     lastDay = int(lastDay) + 1
-    print('VL key times: ', inf_onset_day, peak_day, lastDay, peak_VL)
+    #print('VL key times: ', inf_onset_day, peak_day, lastDay, peak_VL)
     #iterate for each day and save to list based on slopes.
     times = []
     v = 0
@@ -347,32 +347,30 @@ def viral_load(time_steps): # adjust for delta t
         if t < inf_onset_day:
             v = s_beforeInf*t + 0
             vl_list.append(v)
-            print('before infectious: ', end = ' ')
+            #print('before infectious: ', end = ' ')
         elif t == inf_onset_day:
             v = 3
             vl_list.append(v)
-            print('infectious: ', end = ' ')
+            #print('infectious: ', end = ' ')
         elif inf_onset_day < t and t < peak_day:
             v = s_mid*t + b_mid
             vl_list.append(v)
-            print('after infectious and before peak: ', end = ' ')
+            #print('after infectious and before peak: ', end = ' ')
         elif t == peak_day:
             v = peak_VL
             vl_list.append(v)
-            print('peak: ', end = ' ')
+            #print('peak: ', end = ' ')
         else:
             v = s_afterPeak*t + b_afterPeak
             vl_list.append(v)
-            print('after peak: ', end = ' ')
+            #print('after peak: ', end = ' ')
         if t > peak_day and v <= 3:
             cont = False
 
-        print(t, v)
+        #print(t, v)
         times.append(t)
         t = t + 1
-    #print(vl_list)
-    plt.plot(times, vl_list[:-1])
-    plt.show()
+
     return vl_list
 
 def vl_prob(viral_load):
