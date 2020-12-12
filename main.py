@@ -28,7 +28,7 @@ exponent = 2.8
 nu = 100
 epsilon = 1e-3
 tmax = 1000
-net_type = 'temporal'
+net_type = 'static'
 #
 #---------------------------------------------------------------------------------
 #OOP Version
@@ -47,6 +47,23 @@ for i in range(10):
         nodesA, edgesA = construct_activity_driven_model(n, m, activities, tmin=0, tmax=tmax, dt=1)
 
     initial_infected = np.random.choice(list(nodesA))
+
+
+    print("Starting SIR model")
+    exp_name_2 = net_type + '_SIR/run_' + str(i) + '/'
+    #network2 = Network(nodesA, temporalA, contagionType = 'SIR')
+    print(initial_infected)
+    network2 = Network(nodesA, edgesA, contagionType = 'SIR')
+
+    network2.run_temporal_contagion(0, 0, tmax=tmax, exp_name = exp_name_2, time_steps = timesteps, initial_infected = initial_infected)
+    #plot_stats(network.edge_list, network.node_list, tmax = 100, time_steps = 'day', exp_name = exp_name)
+
+    print('DONE.')
+    print("output/" + exp_name_2 + "edge_list.p")
+    # pickle things to plot later
+    pickle.dump( network2.edge_list, open( "output/" + exp_name_2 + "edge_list.p", "wb" ) )
+    pickle.dump( network2.node_list, open( "output/" + exp_name_2 + "node_list.p", "wb" ) )
+
     exp_name = net_type + '_VL/run_' + str(i) + '/'
 
     #temporal_to_static_network(temporalA)
@@ -57,25 +74,10 @@ for i in range(10):
     #plot_stats(network.edge_list, network.node_list, tmax = 100, time_steps = 'day', exp_name = exp_name)
 
     print('DONE.')
+    print("output/" + exp_name + "edge_list.p")
     # pickle things to plot later
     pickle.dump( network.edge_list, open( "output/" + exp_name + "edge_list.p", "wb" ) )
     pickle.dump( network.node_list, open( "output/" + exp_name + "node_list.p", "wb" ) )
-
-
-    print("Starting SIR model")
-    exp_name_2 = net_type + '_SIR/run_' + str(i) + '/'
-    #network2 = Network(nodesA, temporalA, contagionType = 'SIR')
-    network2 = Network(nodesA, edgesA, contagionType = 'SIR')
-
-    network2.run_temporal_contagion(0, 0, tmax=tmax, exp_name = exp_name_2, time_steps = timesteps, initial_infected = initial_infected)
-    #plot_stats(network.edge_list, network.node_list, tmax = 100, time_steps = 'day', exp_name = exp_name)
-
-    print('DONE.')
-    # pickle things to plot later
-    pickle.dump( network2.edge_list, open( "output/" + exp_name + "edge_list.p", "wb" ) )
-    pickle.dump( network2.node_list, open( "output/" + exp_name + "node_list.p", "wb" ) )
-
-
 
 #
 '''web = webweb.Web(title="test")

@@ -116,7 +116,7 @@ class Network:
 
                             #infect with probablility p
                             to_infect = random.random()
-                            print(to_infect, 'node: ', neighbor, prob_of_infection)
+                            #print(to_infect, 'node: ', neighbor, prob_of_infection)
                             if to_infect < prob_of_infection:
                                 # update status, infect_time at time t
                                 self.node_list[neighbor]['status'] = 'I'
