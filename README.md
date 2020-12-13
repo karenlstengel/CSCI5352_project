@@ -1,17 +1,10 @@
 # CSCI5352_project
 
-## Python environment
-
-With the `.yml` file:
-1. `conda gt create -f csci5352_proj_env.yml`
-2. `conda activate gt`
-3. `conda gt list`
-
-If the `.yml` import doesn't work here is how to install `graph-tools` with Conda:
-1. `conda create --name gt -c conda-forge graph-tool`
-2. `conda activate gt`
-3. `conda install -n gt -c conda-forge {package names, ipython, jupyter, ...}`
-4. `conda gt list`
+## Python requirements
+1. python v3.6 or greater  
+2. numpy  
+3. networkx  
+4. matlplotlib
 
 <!--- end of section -->
 
@@ -34,8 +27,6 @@ p_edges = list of time probabilities for time dependent edges
 
 for timestep t in graphTimes:  
     G_list.add(graph-tools graph with n nodes and edge probability p_edges[t])  
-
-
 
 t = 1
 while t < simTimes or len(infected list) < n:  
@@ -80,10 +71,4 @@ include plt here that is prob p vs time t
     - SIR model
     - viral load
 
-<!--- end of section -->
-### example of LaTeX equations in MD if needed:
-go to [this website](https://www.codecogs.com/latex/eqneditor.php) to get an svg (change from gif to svg in the dropdown) of an equation and save to `LaTeX_eqn` to get:  
-![equn1](LaTeX_eqn/CodeCogsEqn.svg)
-
-if you know a better way please share <3
 <!--- end of section -->

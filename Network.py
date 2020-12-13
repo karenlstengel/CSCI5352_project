@@ -4,7 +4,6 @@ import random
 import csv
 import math
 import os
-from scipy.sparse import csr_matrix
 from utils import *
 
 class Network:
@@ -80,7 +79,7 @@ class Network:
 
             if len(R) == N or len(I) == 0:
                 break
-            # infect shit
+            # infect nodes
             for infected_node in I:
                 prob_of_infection = 0.0
                 neighbors, sus_neighbors = get_neighbors(self.edge_list[index], self.node_list, infected_node)
