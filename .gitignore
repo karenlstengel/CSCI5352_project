@@ -135,8 +135,7 @@ dmypy.json
 #misc output files
 *.png
 *.jpg
-*.gif
-*.pdf
+
 
 # Latex files
 
